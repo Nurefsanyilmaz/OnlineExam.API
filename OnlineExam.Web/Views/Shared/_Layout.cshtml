@@ -1,0 +1,177 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>@ViewData["Title"] - Online Sınav Portalı</title>
+
+    
+    <link href="~/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link href="~/css/sb-admin-2.min.css" rel="stylesheet">
+
+    <style>
+        
+        .admin-only {
+            display: none;
+        }
+    </style>
+</head>
+
+<body id="page-top">
+    <div id="wrapper">
+
+        
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+            
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/Home/Index">
+                <div class="sidebar-brand-icon rotate-n-15">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="sidebar-brand-text mx-3">Sınav Portalı</div>
+            </a>
+
+            <hr class="sidebar-divider my-0">
+
+            
+            <li class="nav-item">
+                <a class="nav-link" href="/Home/Index">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Ana Sayfa</span>
+                </a>
+            </li>
+
+            
+            <li class="nav-item">
+                <a class="nav-link" href="/Home/MyResults">
+                    <i class="fas fa-fw fa-user-check"></i>
+                    <span>Sonuçlarım</span>
+                </a>
+            </li>
+
+            
+            <div class="admin-only">
+                <hr class="sidebar-divider">
+                <div class="sidebar-heading">
+                    Yönetici Paneli
+                </div>
+
+            <li class="nav-item">
+                <a class="nav-link" href="/Admin/ExamList">
+                    <i class="fas fa-fw fa-edit"></i>
+                    <span>Sınav Yönetimi</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="/Admin/QuestionList">
+                    <i class="fas fa-fw fa-list-ul"></i>
+                    <span>Soru Bankası</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="/Admin/ExamResults">
+                    <i class="fas fa-fw fa-poll"></i>
+                    <span>Sınav Sonuçları</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="/Admin/UserList">
+                    <i class="fas fa-fw fa-users"></i>
+                    <span>Öğrenci Listesi</span>
+                </a>
+            </li>
+    </div>
+
+    <hr class="sidebar-divider d-none d-md-block">
+
+    </ul>
+    
+
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+
+            
+            <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item dropdown no-arrow">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
+                            <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    <i class="fas fa-user-circle fa-sm fa-fw mr-2 text-primary"></i>
+                                    <strong>@User.Identity.Name</strong>
+                                }
+                                else
+                                {
+                                    <span>Giriş Yapılmadı</span>
+                                }
+                            </span>
+                            <img class="img-profile rounded-circle" src="~/img/undraw_profile.svg">
+                        </a>
+
+                       
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
+                            <a class="dropdown-item" href="javascript:void(0);" id="btnLogout">
+                                <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-danger"></i>
+                                Çıkış Yap
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            
+            <div class="container-fluid">
+                @RenderBody()
+            </div>
+
+        </div>
+
+       
+        <footer class="sticky-footer bg-white">
+            <div class="container my-auto">
+                <div class="copyright text-center my-auto">
+                    <span>Copyright &copy; Akdeniz Online Sınav Portalı 2026</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+    </div>
+
+    
+    <script src="~/vendor/jquery/jquery.min.js"></script>
+    <script src="~/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="~/js/sb-admin-2.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            
+            const userRole = localStorage.getItem('userRole');
+
+            if (userRole === "Admin") {
+                
+                $('.admin-only').show();
+            }
+
+            
+            $("#btnLogout").click(function () {
+                if (confirm("Çıkış yapmak istediğinize emin misiniz?")) {
+                    
+                    localStorage.clear();
+
+                    
+                    window.location.href = '@Url.Action("Logout", "Home")';
+                }
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,199 @@
+﻿@{
+    ViewData["Title"] = "Sınav Ekranı";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<input type="hidden" id="examId" value="@ViewBag.ExamId">
+
+<div class="container mt-4">
+    <div class="card shadow mb-4 border-bottom-success">
+        <div class="card-header py-3 bg-success text-white d-flex justify-content-between align-items-center">
+            <h4 class="m-0 font-weight-bold" id="examTitle">Sınav Yükleniyor... Lütfen Bekleyin.</h4>
+            <div id="examTimer" class="badge badge-light p-2" style="display:none;">
+                <i class="fas fa-clock mr-1"></i> <span id="timerText">Süre İşliyor</span>
+            </div>
+        </div>
+        <div class="card-body bg-light">
+
+            <div id="questionsContainer"></div>
+
+            <div class="text-right mt-4 border-top pt-3">
+                <button id="btnSubmitExam" class="btn btn-success btn-lg shadow" style="display:none;">
+                    <i class="fas fa-paper-plane mr-1"></i> Sınavı Bitir ve Gönder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const examId = $('#examId').val();
+            const token = localStorage.getItem('token');
+            let studentExamSessionId = 0;
+
+            
+            $.ajax({
+                url: 'https://localhost:7028/api/StudentExam/Start',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + token },
+                data: JSON.stringify({ examId: parseInt(examId) }),
+                success: function (session) {
+                    studentExamSessionId = session.id || session.Id || session.studentExamId || session.StudentExamId;
+                    console.log("Oturum Başarıyla Açıldı. ID:", studentExamSessionId);
+
+                    if (studentExamSessionId > 0) {
+                        loadQuestions();
+                        $('#examTimer').fadeIn();
+                    } else {
+                        alert("Sınav oturumu başlatılamadı. Geçerli bir ID alınamadı.");
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Oturum başlatma hatası:", xhr.responseText);
+                    alert("Sınav oturumu başlatılamadı! Giriş yaptığınızdan emin olun.");
+                }
+            });
+
+            
+            function loadQuestions() {
+                $.ajax({
+                    url: 'https://localhost:7028/api/Question/ByExam/' + examId,
+                    type: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    success: function (data) {
+                        if (data.length === 0) {
+                            $('#examTitle').text("Bu sınava henüz soru eklenmemiş.");
+                            return;
+                        }
+
+                        $('#examTitle').text("Sınav Başladı - Başarılar Dileriz!");
+                        $('#btnSubmitExam').show();
+
+                        let html = '';
+                        $.each(data, function (i, q) {
+                            
+                            let qId = q.id || q.Id || q.questionId || q.QuestionId;
+                            let qText = q.text || q.Text || q.questionText || q.QuestionText;
+                            let options = q.options || q.Options;
+
+                            html += `
+                            <div class="card mb-4 shadow-sm question-block border-left-success">
+                                <div class="card-header bg-white font-weight-bold text-dark" style="font-size:18px;">
+                                    ${i + 1}. ${qText}
+                                </div>
+                                <div class="card-body">`;
+
+                            $.each(options, function (j, opt) {
+                                
+                                let optId = opt.id || opt.Id || opt.optionId || opt.OptionId;
+                                let optText = opt.text || opt.Text || opt.optionText || opt.OptionText;
+                                let isCorrect = opt.isCorrect !== undefined ? opt.isCorrect : opt.IsCorrect;
+
+                                html += `
+                                <div class="form-check mb-2 custom-option p-2 rounded">
+                                    <input class="form-check-input" style="transform: scale(1.3); margin-left: 0;"
+                                           type="radio" name="question_${qId}" id="opt_${qId}_${j}"
+                                           value="${optId}" data-iscorrect="${isCorrect}" data-qid="${qId}">
+                                    <label class="form-check-label ml-4 w-100" style="cursor:pointer;" for="opt_${qId}_${j}">
+                                        ${optText}
+                                    </label>
+                                </div>`;
+                            });
+
+                            html += `</div></div>`;
+                        });
+                        $('#questionsContainer').html(html);
+                    }
+                });
+            }
+
+            
+            $(document).on('change', 'input[type=radio]', function() {
+                $(this).closest('.card-body').find('.custom-option').removeClass('bg-success text-white');
+                $(this).closest('.custom-option').addClass('bg-success text-white shadow-sm');
+            });
+
+            
+            $('#btnSubmitExam').click(function () {
+                const checkedRadios = $('input[type=radio]:checked');
+
+                if (checkedRadios.length === 0) {
+                    alert("Lütfen en az bir soruyu işaretleyin!");
+                    return;
+                }
+
+                if (studentExamSessionId === 0) {
+                    alert("Hata: Geçerli bir sınav oturumu bulunamadı. Lütfen sayfayı yenileyin.");
+                    return;
+                }
+
+                if (!confirm("Sınavı bitirmek istediğinize emin misiniz?")) return;
+
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...');
+
+                let totalScore = 0;
+                let questionCount = $('.question-block').length;
+                let pointPerQuestion = 100 / questionCount;
+                let answersToSave = [];
+
+                checkedRadios.each(function () {
+                    let isCorrect = $(this).data('iscorrect');
+                    let qId = $(this).data('qid');
+                    let optId = $(this).val();
+
+                    if (String(isCorrect) === 'true') {
+                        totalScore += pointPerQuestion;
+                    }
+
+                    answersToSave.push({
+                        questionId: parseInt(qId),
+                        selectedOptionId: parseInt(optId),
+                        studentExamId: parseInt(studentExamSessionId)
+                    });
+                });
+
+                totalScore = Math.round(totalScore);
+
+                
+                let promises = answersToSave.map(answer => {
+                    return $.ajax({
+                        url: 'https://localhost:7028/api/StudentAnswer',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        headers: { 'Authorization': 'Bearer ' + token },
+                        data: JSON.stringify(answer)
+                    });
+                });
+
+                Promise.all(promises).then(function() {
+                    alert("Sınav Tamamlandı!\n\nTahmini Puanınız: " + totalScore + " / 100\n\nSonuçlarınızı sonuçlar sayfasından takip edebilirsiniz.");
+                    window.location.href = '/Home/MyResults';
+                }).catch(function(err) {
+                    console.error("Cevap kaydetme hatası:", err);
+                    alert("Cevaplar kaydedilirken bir sorun oluştu ancak sınav oturumunuz tamamlandı.");
+                    window.location.href = '/Home/MyResults';
+                });
+            });
+        });
+    </script>
+}
+
+<style>
+    .custom-option {
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+
+        .custom-option:hover {
+            background-color: #f8f9fa;
+            border-color: #28a745;
+        }
+
+    .bg-success.text-white label {
+        color: white !important;
+        font-weight: bold;
+    }
+</style>

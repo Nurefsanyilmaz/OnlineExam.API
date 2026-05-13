@@ -1,0 +1,84 @@
+﻿@{
+    Layout = null; 
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Yeni Kayıt - Sınav Portalı</title>
+
+    <link href="~/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="~/css/sb-admin-2.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-primary">
+
+    <div class="container">
+        <div class="row justify-content-center mt-5">
+            <div class="col-xl-5 col-lg-6 col-md-8 mt-5">
+                <div class="card o-hidden border-0 shadow-lg my-5">
+                    <div class="card-body p-0">
+                        <div class="p-5">
+                            <div class="text-center">
+                                <h1 class="h4 text-gray-900 mb-4"><i class="fas fa-user-plus text-success"></i> Yeni Öğrenci Hesabı Aç</h1>
+                            </div>
+
+                            <form class="user" id="registerForm">
+                                <div class="form-group">
+                                    <input type="text" class="form-control form-control-user" id="regUsername" placeholder="Kullanıcı Adı" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="email" class="form-control form-control-user" id="regEmail" placeholder="E-Posta Adresi" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="password" class="form-control form-control-user" id="regPassword" placeholder="Şifre" required>
+                                </div>
+                                <button type="submit" class="btn btn-success btn-user btn-block font-weight-bold">
+                                    Kaydı Tamamla
+                                </button>
+                            </form>
+
+                            <hr>
+                            <div class="text-center">
+                                <a class="small" href="/Home/Login">Zaten bir hesabın var mı? Giriş Yap!</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="~/vendor/jquery/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#registerForm").submit(function (e) {
+                e.preventDefault(); 
+
+                var registerData = {
+                    username: $("#regUsername").val(),
+                    email: $("#regEmail").val(),
+                    password: $("#regPassword").val()
+                };
+
+                
+                $.ajax({
+                    url: 'https://localhost:7028/api/Auth/Register',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(registerData),
+                    success: function (response) {
+                        alert("Kayıt Başarılı! Artık giriş yapabilirsin.");
+                        window.location.href = '/Home/Login';
+                    },
+                    error: function (xhr) {
+                        alert("Hata: " + xhr.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

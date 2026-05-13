@@ -1,0 +1,123 @@
+﻿@{
+    ViewData["Title"] = "Sınavı Düzenle";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Sınavı Düzenle</h1>
+    <a href="/Admin/ExamList" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Listeye Dön
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <form id="editExamForm">
+            <input type="hidden" id="examId">
+
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label>Sınav Başlığı</label>
+                    <input type="text" class="form-control" id="title" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Sınav Türü ID</label>
+                    <input type="number" class="form-control" id="examTypeId" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label>Açıklama</label>
+                <textarea class="form-control" id="description" rows="3"></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label>Süre (Dakika)</label>
+                    <input type="number" class="form-control" id="duration" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Geçme Notu</label>
+                    <input type="number" class="form-control" id="passingScore" required>
+                </div>
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="isRandomOrder">
+                        <label class="form-check-label font-weight-bold text-primary">Sorular Karışık Gelsin mi?</label>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+            <button type="submit" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-save"></i> Değişiklikleri Kaydet
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            
+            const urlParts = window.location.pathname.split('/');
+            const examId = urlParts[urlParts.length - 1];
+
+            if(examId) {
+                loadExamDetails(examId);
+            }
+        });
+
+        
+        function loadExamDetails(id) {
+            const token = localStorage.getItem('token');
+            $.ajax({
+                url: 'https://localhost:7028/api/Exam/' + id,
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token },
+                success: function (exam) {
+                    $('#examId').val(exam.id);
+                    $('#title').val(exam.title);
+                    $('#examTypeId').val(exam.examTypeId);
+                    $('#description').val(exam.description);
+                    $('#duration').val(exam.durationInMinutes);
+                    $('#passingScore').val(exam.passingScore);
+                    $('#isRandomOrder').prop('checked', exam.isRandomOrder);
+                }
+            });
+        }
+
+        
+        $('#editExamForm').submit(function (e) {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            const id = $('#examId').val();
+
+            const updatedExam = {
+                id: parseInt(id),
+                title: $('#title').val(),
+                examTypeId: parseInt($('#examTypeId').val()),
+                description: $('#description').val(),
+                durationInMinutes: parseInt($('#duration').val()),
+                passingScore: parseInt($('#passingScore').val()),
+                isRandomOrder: $('#isRandomOrder').is(':checked')
+            };
+
+            $.ajax({
+                url: 'https://localhost:7028/api/Exam/' + id,
+                type: 'PUT', 
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + token },
+                data: JSON.stringify(updatedExam),
+                success: function () {
+                    alert("Sınav bilgileri başarıyla güncellendi!");
+                    window.location.href = '/Admin/ExamList';
+                },
+                error: function (xhr) {
+                    alert("Güncelleme sırasında bir hata oluştu!");
+                    console.log(xhr.responseText);
+                }
+            });
+        });
+    </script>
+}

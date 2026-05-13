@@ -1,0 +1,200 @@
+﻿@{
+    ViewData["Title"] = "Soruları Yönet";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Soru Bankası</h1>
+    <a href="/Admin/ExamList" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Sınavlara Dön
+    </a>
+</div>
+
+<div class="card shadow mb-4 border-bottom-primary">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Yeni Soru Ekle</h6>
+    </div>
+    <div class="card-body">
+        <form id="addQuestionForm">
+            <input type="hidden" id="examId" value="@ViewBag.ExamId">
+            <div class="form-group mb-3">
+                <label class="font-weight-bold">Soru Metni</label>
+                <textarea class="form-control" id="questionText" rows="2" required placeholder="Sorunuzu buraya yazın..."></textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="font-weight-bold text-dark">A Şıkkı</label>
+                    <input type="text" class="form-control" id="optionA" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="font-weight-bold text-dark">B Şıkkı</label>
+                    <input type="text" class="form-control" id="optionB" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="font-weight-bold text-dark">C Şıkkı</label>
+                    <input type="text" class="form-control" id="optionC" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="font-weight-bold text-dark">D Şıkkı</label>
+                    <input type="text" class="form-control" id="optionD" required>
+                </div>
+            </div>
+            <div class="row align-items-end mt-2">
+                <div class="col-md-4 mb-3">
+                    <label class="font-weight-bold text-success">Doğru Cevap Hangisi?</label>
+                    <select class="form-control border-success" id="correctOption" required>
+                        <option value="">Seçiniz...</option>
+                        <option value="A">A Şıkkı</option>
+                        <option value="B">B Şıkkı</option>
+                        <option value="C">C Şıkkı</option>
+                        <option value="D">D Şıkkı</option>
+                    </select>
+                </div>
+                <div class="col-md-8 mb-3 text-right">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus-circle"></i> Soruyu Kaydet
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Bu Sınava Ait Sorular</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th width="40%">Soru</th>
+                        <th width="40%">Şıklar</th>
+                        <th width="20%">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody id="questionTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            loadQuestions();
+
+            $('#addQuestionForm').submit(function (e) {
+                e.preventDefault();
+                const examId = $('#examId').val();
+                const correctOpt = $('#correctOption').val();
+
+               
+                const options = [
+                    { Text: $('#optionA').val(), IsCorrect: correctOpt === 'A' },
+                    { Text: $('#optionB').val(), IsCorrect: correctOpt === 'B' },
+                    { Text: $('#optionC').val(), IsCorrect: correctOpt === 'C' },
+                    { Text: $('#optionD').val(), IsCorrect: correctOpt === 'D' }
+                ];
+
+                const questionData = {
+                    ExamId: parseInt(examId),
+                    Text: $('#questionText').val(),
+                    Options: options
+                };
+
+                const token = localStorage.getItem('token');
+
+                $.ajax({
+                    url: 'https://localhost:7028/api/Question',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    data: JSON.stringify(questionData),
+                    success: function () {
+                        alert("Harika! Soru başarıyla eklendi.");
+                        $('#addQuestionForm')[0].reset();
+                        loadQuestions();
+                    },
+                    error: function (xhr) {
+                        alert("Soru eklenirken bir hata oluştu.");
+                        console.log("Hata Detayı:", xhr.responseText);
+                    }
+                });
+            });
+        });
+
+        function loadQuestions() {
+            const examId = $('#examId').val();
+            const token = localStorage.getItem('token');
+
+            $.ajax({
+                url: 'https://localhost:7028/api/Question/ByExam/' + examId,
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token },
+                success: function (data) {
+                    let rows = '';
+
+                    $.each(data, function (i, question) {
+                        
+                        let qId = question.id || question.Id;
+                        let qText = question.text || question.Text || "Soru metni bulunamadı";
+                        let qOptions = question.options || question.Options || [];
+
+                        let optionsHtml = '<ul class="list-unstyled mb-0">';
+                        $.each(qOptions, function(j, opt) {
+                            let isCorr = opt.isCorrect !== undefined ? opt.isCorrect : opt.IsCorrect;
+                            let optText = opt.text || opt.Text || "Şık boş";
+
+                            let colorClass = isCorr ? 'text-success font-weight-bold' : 'text-secondary';
+                            let icon = isCorr ? '<i class="fas fa-check"></i>' : '-';
+
+                            optionsHtml += `<li class="${colorClass}">${icon} ${optText}</li>`;
+                        });
+                        optionsHtml += '</ul>';
+
+                        rows += `<tr>
+                            <td>${qText}</td>
+                            <td>${optionsHtml}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteQuestion(${qId})">
+                                    <i class="fas fa-trash"></i> Sil
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+
+                    $('#questionTableBody').html(rows);
+                },
+                error: function (xhr) {
+                    console.log("Sorular yüklenirken hata:", xhr.responseText);
+                }
+            });
+        }
+
+        function deleteQuestion(id) {
+            if (!id) {
+                alert("Hata: Silinecek sorunun numarası bulunamadı!");
+                return;
+            }
+
+            if (confirm("Bu soruyu silmek istediğinize emin misiniz?")) {
+                const token = localStorage.getItem('token');
+                $.ajax({
+                    url: 'https://localhost:7028/api/Question/' + id,
+                    type: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    success: function () {
+                        alert("Soru silindi.");
+                        loadQuestions();
+                    },
+                    error: function (xhr) {
+                        alert("Soru silinirken bir hata oluştu.");
+                        console.log("Silme Hatası:", xhr.responseText);
+                    }
+                });
+            }
+        }
+    </script>
+}

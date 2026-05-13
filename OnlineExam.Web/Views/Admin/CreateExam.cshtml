@@ -1,0 +1,100 @@
+﻿@{
+    ViewData["Title"] = "Yeni Sınav Oluştur";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Yeni Sınav Oluştur</h1>
+    <a href="/Admin/ExamList" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Sınav Listesine Dön
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <form id="createExamForm">
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label>Sınav Başlığı</label>
+                    <input type="text" class="form-control" id="title" placeholder="Örn: C# ve .NET Core Vize Sınavı" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Sınav Türü ID</label>
+                    <input type="number" class="form-control" id="examTypeId" placeholder="Şimdilik 1 yazabilirsiniz" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label>Açıklama (İsteğe Bağlı)</label>
+                <textarea class="form-control" id="description" rows="3" placeholder="Öğrenciler için sınav öncesi notlar..."></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label>Süre (Dakika)</label>
+                    <input type="number" class="form-control" id="duration" placeholder="Örn: 45" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Geçme Notu</label>
+                    <input type="number" class="form-control" id="passingScore" placeholder="Örn: 50" required>
+                </div>
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="isRandomOrder">
+                        <label class="form-check-label font-weight-bold text-primary">Sorular Karışık Gelsin mi?</label>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+            <button type="submit" class="btn btn-success btn-lg px-5">
+                <i class="fas fa-save"></i> Sınavı Kaydet
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        
+        $('#createExamForm').submit(function (e) {
+            e.preventDefault(); 
+
+            const token = localStorage.getItem('token');
+
+            
+            const newExam = {
+                title: $('#title').val(),
+                examTypeId: parseInt($('#examTypeId').val()),
+                description: $('#description').val(),
+                durationInMinutes: parseInt($('#duration').val()),
+                passingScore: parseInt($('#passingScore').val()),
+                isRandomOrder: $('#isRandomOrder').is(':checked')
+            };
+
+            
+            $.ajax({
+                url: 'https://localhost:7028/api/Exam', 
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                data: JSON.stringify(newExam),
+                success: function () {
+                    
+                    alert("Harika! Sınav başarıyla eklendi.");
+                    window.location.href = '/Admin/ExamList';
+                },
+                error: function (xhr) {
+                    if(xhr.status === 401) {
+                        alert("Oturum süreniz dolmuş, lütfen tekrar giriş yapın.");
+                    } else {
+                        alert("Sınav eklenirken bir hata oluştu!");
+                        console.log(xhr.responseText);
+                    }
+                }
+            });
+        });
+    </script>
+}

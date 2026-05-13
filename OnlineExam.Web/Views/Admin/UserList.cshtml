@@ -1,0 +1,56 @@
+﻿@{
+    ViewData["Title"] = "Kayıtlı Öğrenciler (Kullanıcılar)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card shadow mb-4 border-left-info">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-users"></i> Sistemdeki Kayıtlı Öğrenciler</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="bg-info text-white">
+                    <tr>
+                        <th>Kullanıcı Adı</th>
+                        <th>E-Posta Adresi</th>
+                        <th>Kayıt Durumu</th>
+                    </tr>
+                </thead>
+                <tbody id="userListBody">
+                    <tr><td colspan="3" class="text-center">Öğrenciler yükleniyor...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+           
+            $.ajax({
+                url: 'https://localhost:7028/api/Auth/Users',
+                type: 'GET',
+                success: function (data) {
+                    let rows = '';
+                    if(!data || data.length === 0) {
+                        rows = '<tr><td colspan="3" class="text-center">Sistemde henüz kayıtlı öğrenci yok.</td></tr>';
+                    } else {
+                        $.each(data, function (i, user) {
+                            rows += `<tr>
+                                <td class="font-weight-bold text-dark"><i class="fas fa-user-graduate mr-2"></i> ${user.userName || user.UserName}</td>
+                                <td>${user.email || user.Email}</td>
+                                <td><span class="badge badge-success">Aktif Öğrenci</span></td>
+                            </tr>`;
+                        });
+                    }
+                    $('#userListBody').html(rows);
+                },
+                error: function () {
+                    $('#userListBody').html('<tr><td colspan="3" class="text-center text-danger">Kullanıcılar yüklenirken bir hata oluştu.</td></tr>');
+                }
+            });
+        });
+    </script>
+}

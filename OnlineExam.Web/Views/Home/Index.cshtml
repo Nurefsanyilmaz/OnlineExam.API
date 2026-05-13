@@ -1,0 +1,72 @@
+﻿@{
+    ViewData["Title"] = "Ana Sayfa - Sınav Portalı";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-graduation-cap text-primary"></i> Aktif Sınavlar</h1>
+    </div>
+
+    <div class="row" id="activeExamsContainer">
+        
+        <div class="col-12 text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Yükleniyor...</span>
+            </div>
+            <p class="mt-2 text-muted">Sınavlar getiriliyor...</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const token = localStorage.getItem('token');
+
+            
+            $.ajax({
+                url: 'https://localhost:7028/api/Exam',
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token },
+                success: function (data) {
+                    let html = '';
+
+                    if(data.length === 0) {
+                        $('#activeExamsContainer').html('<div class="col-12"><div class="alert alert-info">Şu an aktif bir sınav bulunmamaktadır.</div></div>');
+                        return;
+                    }
+
+                    $.each(data, function (i, exam) {
+                        let eId = exam.id || exam.Id;
+                        let eTitle = exam.title || exam.Title || 'Genel Sınav';
+                        let eDesc = exam.description || exam.Description || 'Bu sınava hemen katılabilirsiniz.';
+
+                        html += `
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow-sm border-bottom-primary h-100">
+                                <div class="card-body text-center pt-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-file-alt fa-3x text-gray-300"></i>
+                                    </div>
+                                    <h5 class="card-title font-weight-bold text-dark">${eTitle}</h5>
+                                    <p class="card-text text-muted small">${eDesc}</p>
+                                    <hr>
+                                    <!-- İŞTE BURASI BİZİ SINAVA GÖTÜREN BUTON -->
+                                    <a href="/Admin/TakeExam/${eId}" class="btn btn-primary w-100 btn-lg shadow-sm">
+                                        <i class="fas fa-play"></i> Sınava Başla
+                                    </a>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+
+                    $('#activeExamsContainer').html(html);
+                },
+                error: function () {
+                    $('#activeExamsContainer').html('<div class="col-12"><div class="alert alert-danger">Sınavlar yüklenirken bir hata oluştu. Lütfen giriş yaptığınızdan emin olun.</div></div>');
+                }
+            });
+        });
+    </script>
+}

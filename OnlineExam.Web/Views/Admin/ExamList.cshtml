@@ -1,0 +1,181 @@
+﻿@{
+    ViewData["Title"] = "Sınav Listesi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Sınav Yönetimi</h1>
+    <a href="/Admin/CreateExam" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+        <i class="fas fa-plus fa-sm text-white-50"></i> Yeni Sınav Oluştur
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Mevcut Sınavlar</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="examTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Sınav Adı</th>
+                        <th>Tarih</th>
+                        <th>Süre (Dakika)</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody id="examTableBody">
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="editExamModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sınav Düzenle</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                
+                <input type="hidden" id="editExamId">
+                <input type="hidden" id="editExamTypeId"> 
+
+                <div class="form-group">
+                    <label>Sınav Adı</label>
+                    <input type="text" id="editTitle" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <textarea id="editDescription" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Süre (Dakika)</label>
+                    <input type="number" id="editDuration" class="form-control">
+                </div>
+                <div class="form-group">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="editIsActive">
+                        <label class="custom-control-label" for="editIsActive">Sınav Aktif mi?</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" onclick="updateExam()">Değişiklikleri Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            loadExams();
+        });
+
+        
+        function loadExams() {
+            const token = localStorage.getItem('token');
+            $.ajax({
+                url: 'https://localhost:7028/api/Exam',
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token },
+                success: function (data) {
+                    let rows = '';
+                    $.each(data, function (i, item) {
+                        let tarih = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : '-';
+                        rows += `<tr>
+                            <td><strong>${item.title}</strong></td>
+                            <td>${tarih}</td>
+                            <td>${item.durationInMinutes} dk</td>
+                            <td><span class="badge ${item.isActive ? 'badge-success' : 'badge-secondary'}">${item.isActive ? 'Aktif' : 'Pasif'}</span></td>
+                            <td>
+                                <a href="/Admin/QuestionList/${item.id}" class="btn btn-warning btn-sm"><i class="fas fa-list"></i> Sorular</a>
+                                <button class="btn btn-info btn-sm" onclick="openEditModal(${item.id})">Düzenle</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteExam(${item.id})">Sil</button>
+                            </td>
+                        </tr>`;
+                    });
+                    $('#examTableBody').html(rows);
+                }
+            });
+        }
+
+        
+        function openEditModal(id) {
+            const token = localStorage.getItem('token');
+            $.ajax({
+                url: 'https://localhost:7028/api/Exam/' + id,
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token },
+                success: function (data) {
+                    $('#editExamId').val(data.id);
+                    $('#editExamTypeId').val(data.examTypeId); // Veritabanı için zorunlu olan tür ID'sini sakladık
+                    $('#editTitle').val(data.title);
+                    $('#editDescription').val(data.description);
+                    $('#editDuration').val(data.durationInMinutes);
+                    $('#editIsActive').prop('checked', data.isActive);
+                    $('#editExamModal').modal('show');
+                }
+            });
+        }
+
+        
+        function updateExam() {
+            const id = $('#editExamId').val();
+            const token = localStorage.getItem('token');
+
+            
+            const examData = {
+                id: parseInt(id),
+                title: $('#editTitle').val(),
+                description: $('#editDescription').val(),
+                durationInMinutes: parseInt($('#editDuration').val()),
+                isActive: $('#editIsActive').is(':checked'),
+                examTypeId: parseInt($('#editExamTypeId').val()) 
+            };
+
+            $.ajax({
+                url: 'https://localhost:7028/api/Exam/' + id,
+                type: 'PUT',
+                contentType: 'application/json',
+                headers: { 'Authorization': 'Bearer ' + token },
+                data: JSON.stringify(examData),
+                success: function () {
+                    alert("Sınav başarıyla güncellendi!");
+                    $('#editExamModal').modal('hide');
+                    loadExams();
+                },
+                error: function (xhr) {
+                    console.error("Hata Detayı:", xhr.responseText);
+                    alert("Güncelleme başarısız! Lütfen tüm alanları kontrol edin.");
+                }
+            });
+        }
+
+       
+        function deleteExam(id) {
+            if (confirm("Bu sınavı tamamen silmek istediğinize emin misiniz?")) {
+                const token = localStorage.getItem('token');
+                $.ajax({
+                    url: 'https://localhost:7028/api/Exam/' + id,
+                    type: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    success: function () {
+                        alert("Sınav başarıyla silindi!");
+                        loadExams();
+                    }
+                });
+            }
+        }
+    </script>
+}
